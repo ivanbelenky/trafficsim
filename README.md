@@ -83,7 +83,7 @@ def dynamic_rho(tf):
     simulator.plot_travel_times()
 ```
 
-![](https://github.com/ivanbelenky/trafficsim/blob/master/assets/images/travel_time.png)
+![](https://github.com/ivanbelenky/trafficsim/blob/master/assets/dynamic_rho.png)
 
 
 # Next steps
