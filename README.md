@@ -17,7 +17,7 @@ env.run(until=100)
 ```
 
 # **Basic idea and motivation**
-- generate traffic data given a $\color{orange} \rho_{i,j}(t) $ of cars going from point $\color{orange}i$ to point $\color{orange}j$. This is a row-wise probability measure, where for each $\color{orange}n \in Nodes$ there is a $\color{orange}p_{i,j}$ of a vehicle appearing and wanting to make the trip $\color{orange}i-j$. So the idea is that this matrix performs some evolution over time.
+- generate traffic data given a $\color{orange} \rho_{i,j}(t)$ of cars going from point $\color{orange}i$ to point $\color{orange}j$. This is a row-wise probability measure, where for each $\color{orange}n \in Nodes$ there is a $\color{orange}p_{i,j}$ of a vehicle appearing and wanting to make the trip $\color{orange}i-j$. So the idea is that this matrix performs some evolution over time.
 
 
 # **Ambitions**
@@ -83,7 +83,7 @@ def dynamic_rho(tf):
     simulator.plot_travel_times()
 ```
 
-![](https://github.com/ivanbelenky/trafficsim/blob/master/assets/images/travel_time.png)
+![](https://github.com/ivanbelenky/trafficsim/blob/master/assets/dynamic_rho.png)
 
 
 # Next steps
