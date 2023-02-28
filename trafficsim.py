@@ -1,16 +1,18 @@
-from typing import NewType, Tuple, Sequence, Any, Dict
+from typing import NewType, Tuple, Sequence, Any, Dict, Union, Callable
 
 import numpy as np
 from numpy import random as rd
 import networkx as nx
 import simpy
-
-
 import networkx as nx
+from tqdm import tqdm
+import matplotlib.pyplot as plt
+
+plt.style.use("dark_background")
 
 RoadInfo = NewType('RoadInfo', Tuple[float, float, int])
 
-DT_IN_SECONDS = 10
+DT_IN_SECONDS = 1
 
 class Road:
     '''
@@ -49,7 +51,7 @@ class Road:
                 # If we reached the destination, it dissapears
                 # without causing congestion, magic abduction
                 if vehicle.reached_dst(self.b):
-                    vehicle.distance = self.length
+                    vehicle.finish()
                     self.vehicles.remove(vehicle) 
                 elif vehicle.waiting:
                     # If it is waiting, we dont have to do anything
@@ -137,26 +139,36 @@ class RoadNodeQueue:
     def is_empty(self):
         return self.vehicles == []
 
+
 class Vehicle:
     def __init__(self, a, b, route, env):
         self.src = a
         self.dst = b
         self.route = route
         self.env = env
+        self.start = env.now
         self.speed = 0
         self.distance = 0
         self.waiting = True
+        self.end = None
 
     def reached_dst(self, c):
         return c == self.dst
 
+    def finish(self):
+        self.end = self.env.now
+        
+    def travel_time(self):
+        if self.end:
+            return self.end - self.start
+
 
 class TrafficSimulator:
-    def __init__(self, rho: np.ndarray, nodes: Sequence[Any], 
+    def __init__(self, rho: Union[np.ndarray, Callable], nodes: Sequence[Any], 
         roads:Dict[Any, RoadInfo], env: simpy.Environment):
         
         self._validate_attr(rho, nodes)
-        self.rho = rho
+        self._rho = rho
         
         self.roadmap = RoadMap(nodes, roads)
         self.roads = self.roadmap.roads
@@ -167,10 +179,24 @@ class TrafficSimulator:
         self.env = env
         self.time = 0
     
+    @property
+    def rho(self):
+        if isinstance(self._rho, np.ndarray):
+            return self._rho
+        return self._rho(self.env.now*DT_IN_SECONDS)
+
     def _validate_attr(self, rho, nodes):
         n = len(nodes)
-        if rho.shape != (n, n+1):
-            raise ValueError(f"Rho matrix must be of shape {(n, n+1)}")
+        if not isinstance(rho, (np.ndarray, Callable)):
+            raise ValueError("Rho must be a fixed array or a callable")
+
+        if isinstance(rho, np.ndarray):
+            if rho.shape != (n, n+1):
+                raise ValueError(f"Rho matrix must be of shape {(n, n+1)}")
+
+        if isinstance(rho, Callable):
+            if rho.__code__.co_argcount != 1:
+                raise ValueError("Rho function must have (t) as argument")
 
     def new_vehicles(self, a):
         # Last column is Pr{no new vehicle}
@@ -185,7 +211,33 @@ class TrafficSimulator:
             
             self.vehicles.append(new_vehicle)
 
-    def run(self):
+    def get_statistics(self):
+        ab_travel_times = {}
+        for v in self.vehicles:
+            ab = (v.src, v.dst)
+            if ab in ab_travel_times:
+                ab_travel_times[ab].append((v.start, v.end))
+            else:
+                ab_travel_times[ab] = [(v.start, v.end)]
+        
+        return ab_travel_times
+
+    def plot_travel_times(self, nodes: Union[Sequence[Any], None]=None):
+        if not nodes:
+            nodes = self.nodes.keys()
+        plt.figure(figsize=(10, 10))
+        ab_travel_times = self.get_statistics()
+        for ab, times in ab_travel_times.items():
+            ab_scatter = []
+            for start, end in times:
+                if end:
+                    ab_scatter.append([start, (end-start)*DT_IN_SECONDS/60])
+            ab_scatter = np.array(ab_scatter)
+            plt.scatter(ab_scatter[:,0], ab_scatter[:,1], s=1, label=f"{ab}")
+        plt.xlabel("Time (minutes)"); plt.ylabel("Travel time (minutes)")
+        plt.legend(loc=1); plt.show()
+
+    def _run(self):
         while True:
             for a, node in self.nodes.items():
                 self.new_vehicles(a)
@@ -194,19 +246,7 @@ class TrafficSimulator:
                 road.move_vehicles()
             yield self.env.timeout(1)
 
-
-if __name__ == "__main__":
-    env = simpy.Environment()
-    nodes = [0, 1]
-    roads = {
-        (0,1): (3000, 100, 50),
-        (1,0): (3000, 40, 60)
-    }
-    rho = np.array([[0.0, 0.1, 0.9],
-                    [0.2, 0.0, 0.8]])
-    
-    simulator = TrafficSimulator(rho, nodes, roads, env)
-    env.process(simulator.run())
-    env.run(until=100)
-
-    print([v.distance for v in simulator.vehicles])
+    def run(self, sim_time):
+        self.env.process(self._run())
+        for i in tqdm(range(1, sim_time+1)):
+            self.env.run(until=i)

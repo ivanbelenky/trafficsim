@@ -38,7 +38,7 @@ env.run(until=100)
 - each `RoadNode` $\color{orange}a$ holds the following information:
   - queue of vehicles wanting to start their journey at $\color{orange}a$ and going to $\color{orange}b$. That is, a queue of vehicles wanting to go through `Road` $\color{orange}a-b$, where $\color{orange}b$ corresponds to each direct edge from a.
 
-# Runs
+# Rules for time evolution
 
 ```python
 def run(self):
@@ -54,6 +54,37 @@ def run(self):
 - release all queues, one car at a time per queue
 - move vehicles in that road
 - make time update
+
+
+# Examples
+
+2 hour periodic discrete shifts.
+
+```python
+def dynamic_rho(tf):
+    env = simpy.Environment()
+    nodes = [0, 1]
+    roads = {
+        (0,1): (100, 10, 3),
+        (1,0): (100, 10, 3)
+    }
+    def rho(t):
+        if t//7200 % 2 == 0:
+            return np.array([[0.0, 0.25, 0.75],
+                            [0.15, 0.0, 0.85]])
+        return np.array([[0.0, 0.15, 0.85],
+                        [0.25, 0.0, 0.75]])
+    
+    simulator = TrafficSimulator(rho, nodes, roads, env)
+    env.process(simulator.run())
+    for i in tqdm(range(1,tf)):
+        env.run(until=i)
+
+    simulator.plot_travel_times()
+```
+
+![](https://github.com/ivanbelenky/trafficsim/blob/master/assets/images/travel_time.png)
+
 
 # Next steps
 
