@@ -231,7 +231,8 @@ class TrafficSimulator:
             ab_scatter = []
             for start, end in times:
                 if end:
-                    ab_scatter.append([start, (end-start)*DT_IN_SECONDS/60])
+                    ab_scatter.append([start*DT_IN_SECONDS/60, 
+                                       (end-start)*DT_IN_SECONDS/60])
             ab_scatter = np.array(ab_scatter)
             plt.scatter(ab_scatter[:,0], ab_scatter[:,1], s=1, label=f"{ab}")
         plt.xlabel("Time (minutes)"); plt.ylabel("Travel time (minutes)")
