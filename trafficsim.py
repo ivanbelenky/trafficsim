@@ -34,6 +34,13 @@ class Road:
     def capacity_left(self):
         return self.capacity - len(self.vehicles)
 
+    def has_free_space(self):
+        if not self.vehicles:
+            return True
+        elif self.vehicles[0].distance == 0:
+            return False
+        return self.capacity_left > 0
+
     def add_vehicle(self, vehicle):
         vehicle.distance = 0
         vehicle.waiting = False
@@ -43,6 +50,9 @@ class Road:
     def move_vehicles(self):
         max_d = self.length
         for vehicle in reversed(self.vehicles): 
+            if max_d < 0:
+                break
+
             delta_d = vehicle.speed * DT_IN_SECONDS
             new_distance = min(vehicle.distance + delta_d, max_d)
 
@@ -61,7 +71,7 @@ class Road:
                     # path, and we enque to the next road
                     c = vehicle.route[-1] # c := next node
                     vehicle.distance = max_d
-                    max_d = max_d-self.length/self.capacity
+                    max_d = max(max_d-self.length/self.capacity, 0)
                     self.roadmap.nodes[self.b].to[c].enqueue(vehicle, self)
                     # By enqueuing the road we make sure that whenever the
                     # vehicle is released from the queue, is going to be removed
@@ -85,14 +95,14 @@ class RoadNode:
         self.a = node
         self.roadmap = roadmap
         self.to = {b: RoadNodeQueue() for _, b in connected_to}
-
+        
     def release_queue(self):
         # Liberating queues may need randomization to average the 
         # effect of multiple connected nodes liberating always at
         # the same order
-        for b, queue in self.to.items(): 
+        for b, queue in self.to.items():
             road = self.roadmap.roads[(self.a, b)]
-            if road.capacity_left > 0 and not queue.is_empty():
+            if road.has_free_space()  and not queue.is_empty():
                 vehicle, prev_road = queue.dequeue()
                 if prev_road:
                     prev_road.vehicles.remove(vehicle)
@@ -111,7 +121,7 @@ class RoadMap:
         self.graph = self._create_graph(nodes, self.roads)
         self.nodes = {node: RoadNode(node, connected_to=self.graph.edges(node), roadmap=self) 
                       for node in nodes}
-        
+
     def _create_graph(self, nodes, roads) -> nx.Graph:
         graph = nx.DiGraph()
         graph.add_nodes_from(nodes)
@@ -222,9 +232,7 @@ class TrafficSimulator:
         
         return ab_travel_times
 
-    def plot_travel_times(self, nodes: Union[Sequence[Any], None]=None):
-        if not nodes:
-            nodes = self.nodes.keys()
+    def plot_travel_times(self):
         plt.figure(figsize=(10, 10))
         ab_travel_times = self.get_statistics()
         for ab, times in ab_travel_times.items():
@@ -233,18 +241,21 @@ class TrafficSimulator:
                 if end:
                     ab_scatter.append([start*DT_IN_SECONDS/60, 
                                        (end-start)*DT_IN_SECONDS/60])
-            ab_scatter = np.array(ab_scatter)
-            plt.scatter(ab_scatter[:,0], ab_scatter[:,1], s=1, label=f"{ab}")
+            if ab_scatter:
+                ab_scatter = np.array(ab_scatter)
+                plt.scatter(ab_scatter[:,0], ab_scatter[:,1], s=1, label=f"{ab}")
         plt.xlabel("Time (minutes)"); plt.ylabel("Travel time (minutes)")
         plt.legend(loc=1); plt.show()
+        
 
     def _run(self):
         while True:
             for a, node in self.nodes.items():
-                self.new_vehicles(a)
                 node.release_queue()
+                self.new_vehicles(a)
             for ab, road in self.roads.items():
                 road.move_vehicles()
+                
             yield self.env.timeout(1)
 
     def run(self, sim_time):
