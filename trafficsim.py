@@ -4,7 +4,6 @@ import numpy as np
 from numpy import random as rd
 import networkx as nx
 import simpy
-import networkx as nx
 from tqdm import tqdm
 import matplotlib.pyplot as plt
 
