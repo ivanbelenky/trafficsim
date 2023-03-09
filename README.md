@@ -17,13 +17,13 @@ env.run(until=100)
 ```
 
 # **Basic idea and motivation**
-- generate traffic data given a $\color{orange} \rho_{i,j}(t)$ of cars going from point $\color{orange}i$ to point $\color{orange}j$. This is a row-wise probability measure, where for each $\color{orange}n \in Nodes$ there is a $\color{orange}p_{i,j}$ of a vehicle appearing and wanting to make the trip $\color{orange}i-j$. So the idea is that this matrix performs some evolution over time.
+- generate traffic data given a $\rho_{i,j}(t)$ of cars going from point $i$ to point $j$. This is a row-wise probability measure, where for each $n \in Nodes$ there is a $p_{i,j}$ of a vehicle appearing and wanting to make the trip $i-j$. So the idea is that this matrix performs some evolution over time.
 
 
 # **Ambitions**
 
-- given $\color{orange}\rho_{ij}(t)$ we should be able to generate a simulation where we can track each car in each point of the route. In this way we are going to be able to generate traffic volume, traffic speeds, and some other metrics related to each load at each time step.
-- an ambitious goal would be to study the ability to regenerate with simulated data $\color{orange}\rightarrow \rho (t)$. So given traffic information, find the pseudo probability matrix that generated it.
+- given $\rho_{ij}(t)$ we should be able to generate a simulation where we can track each car in each point of the route. In this way we are going to be able to generate traffic volume, traffic speeds, and some other metrics related to each load at each time step.
+- an ambitious goal would be to study the ability to regenerate with simulated data $\rightarrow \rho (t)$. So given traffic information, find the pseudo probability matrix that generated it.
 
 
 # **Model**
@@ -35,8 +35,8 @@ env.run(until=100)
   - `capacity` 
   - `vehicles` 
 - each road connects to `RoadNodes`
-- each `RoadNode` $\color{orange}a$ holds the following information:
-  - queue of vehicles wanting to start their journey at $\color{orange}a$ and going to $\color{orange}b$. That is, a queue of vehicles wanting to go through `Road` $\color{orange}a-b$, where $\color{orange}b$ corresponds to each direct edge from a.
+- each `RoadNode` $a$ holds the following information:
+  - queue of vehicles wanting to start their journey at $a$ and going to $b$. That is, a queue of vehicles wanting to go through `Road` $a-b$, where $b$ corresponds to each direct edge from a.
 
 # Rules for time evolution
 
